@@ -285,3 +285,35 @@ test('dynamic_moving obstacle approaching a parked robot resolves collision with
   assert.equal(closestSt.safetyStatus, 'DANGER_STOP');
   assert.equal(sim.startHold('F').accepted, false);
 });
+
+test('ARM/STOP FSM rejects duplicate ARM (422) and latches STOP until next ARM', () => {
+  const sim = createAmrSimulator({ scenarioId: 'clear' });
+
+  const arm1 = sim.request('/api/cmd?val=ARM');
+  assert.equal(arm1.statusCode, 200);
+  assert.equal(arm1.body.status, 'SENT');
+  assert.equal(arm1.body.reason, 'ARM_CONFIRMED');
+  assert.equal(arm1.body.armed, true);
+  assert.equal(arm1.body.latched, false);
+
+  const dupArm = sim.request('/api/cmd?val=ARM');
+  assert.equal(dupArm.statusCode, 422);
+  assert.equal(dupArm.body.status, 'FAILED');
+  assert.equal(dupArm.body.reason, 'PREFLIGHT_NOT_READY');
+
+  const stopRes = sim.request('/api/cmd?val=STOP');
+  assert.equal(stopRes.statusCode, 200);
+  assert.equal(stopRes.body.status, 'SENT');
+  assert.equal(stopRes.body.reason, 'STOP_CONFIRMED');
+  assert.equal(stopRes.body.armed, false);
+  assert.equal(stopRes.body.latched, true);
+  assert.equal(sim.getTelemetry().control.latched, true);
+
+  const arm2 = sim.request('/api/cmd?val=ARM');
+  assert.equal(arm2.statusCode, 200);
+  assert.equal(arm2.body.status, 'SENT');
+  assert.equal(arm2.body.reason, 'ARM_CONFIRMED');
+  assert.equal(arm2.body.armed, true);
+  assert.equal(arm2.body.latched, false);
+  assert.equal(sim.getTelemetry().control.latched, false);
+});

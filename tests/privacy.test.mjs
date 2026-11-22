@@ -30,8 +30,10 @@ const FORBIDDEN_PATTERNS = [
   { name: 'bot-token', re: /\b\d{8,10}:[A-Za-z0-9_-]{35}\b/ },
   { name: 'github-token', re: /\b(?:[g]hp_[A-Za-z0-9]{20,}|[g]ithub_pat_[A-Za-z0-9_]{20,})\b/ },
   { name: 'oauth-client-secret', re: /[c]lient_secret/i },
-  { name: 'credential-assignment', re: /\b(?:[w]ifi_pass|[s]sid|[p]sk|[p]assword)\s*=\s*['"][^'"]+['"]/i },
+  { name: 'credential-assignment', re: /\b(?:[w]ifi_pass|[s]sid|[p]sk|[p]assword|[a]pi_key)\s*=\s*['"][^'"]+['"]/i },
+  { name: 'telegram-chat-id', re: /\b[T]ELEGRAM_CHAT_ID\b/i },
   { name: 'forbidden-legacy-ext', re: /\.(?:a[i]a|b[k]y|s[c]m)\b/i },
+  { name: 'legacy-builder-prose', re: /\b[m]it[\s_]+app[\s_]+in[v]entor\b/i },
   { name: 'external-cdn', re: /fonts\.[g]oogleapis\.com|fonts\.[g]static\.com|cdn\.[t]ailwindcss\.com|[u]npkg\.com|cdn\.[j]sdelivr\.net|cdnjs\.[c]loudflare\.com/i },
 ];
 

@@ -59,6 +59,7 @@ export function createAmrSimulator(options = {}) {
   let distanceTraveledM = 0;
 
   let armed = false;
+  let latched = false;
   let fault = null;
   let stopPending = false;
   let desiredRpm = RPM_DEFAULT;
@@ -227,10 +228,16 @@ export function createAmrSimulator(options = {}) {
         logRest('GET', `/api/cmd?val=ARM&epoch=${reqEpoch}&seq=${reqSeq}`, 200, res);
         return res;
       }
+      if (armed) {
+        const res = { status: 'FAILED', reason: 'PREFLIGHT_NOT_READY', armed: true, latched };
+        logRest('GET', `/api/cmd?val=ARM&epoch=${reqEpoch}&seq=${reqSeq}`, 422, res);
+        return res;
+      }
       armed = true;
+      latched = false;
       stopPending = false;
       epoch += 1;
-      const res = { status: 'SENT' };
+      const res = { status: 'SENT', reason: 'ARM_CONFIRMED', armed: true, latched: false };
       logRest('GET', `/api/cmd?val=ARM&epoch=${epoch}&seq=${seq}`, 200, res);
       return res;
     }
@@ -242,7 +249,7 @@ export function createAmrSimulator(options = {}) {
       cmdW = 0;
       wheelRpms = { l_rpm: 0, r_rpm: 0 };
       epoch += 1;
-      const res = { status: 'SENT' };
+      const res = { status: 'SENT', armed: false, latched };
       logRest('GET', `/api/cmd?val=DISARM&epoch=${epoch}&seq=${seq}`, 200, res);
       return res;
     }
@@ -250,12 +257,13 @@ export function createAmrSimulator(options = {}) {
     if (trimmed === 'STOP') {
       stopPending = false;
       armed = false;
+      latched = true;
       activeDirection = null;
       cmdV = 0;
       cmdW = 0;
       wheelRpms = { l_rpm: 0, r_rpm: 0 };
       epoch += 1;
-      const res = { status: 'SENT' };
+      const res = { status: 'SENT', reason: 'STOP_CONFIRMED', armed: false, latched: true };
       logRest('GET', `/api/cmd?val=STOP&epoch=${epoch}&seq=${seq}`, 200, res);
       return res;
     }
@@ -480,6 +488,7 @@ export function createAmrSimulator(options = {}) {
       control: {
         armed,
         fault,
+        latched,
       },
       lidar: getLidarObj(),
       ranges: [...lastScan.ranges],
@@ -518,7 +527,8 @@ export function createAmrSimulator(options = {}) {
       const reqEpoch = Number(url.searchParams.get('epoch') ?? epoch);
       const reqSeq = Number(url.searchParams.get('seq') ?? seq);
       const payload = executeCmd(val, reqEpoch, reqSeq);
-      return { statusCode: 200, body: payload };
+      const statusCode = payload.status === 'FAILED' ? 422 : 200;
+      return { statusCode, body: payload };
     }
 
     if (path === '/api/auto_config') {
@@ -717,6 +727,7 @@ export function createAmrSimulator(options = {}) {
       simTimeMs,
       scenarioId: world.scenarioId,
       armed,
+      latched,
       fault,
       stopPending,
       lidar,
