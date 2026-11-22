@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>DD VEHICLE · AMR Cockpit Simulator</title>
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div id="app-shell" class="app-shell" data-frame-mode="bezel" data-active-screen="connect">
+    <div class="bezel-notch" aria-hidden="true">
+      <span class="notch-led"></span>
+      <span class="notch-label">AMR TACTICAL CONSOLE · OFFLINE SIM</span>
+    </div>
+
+    <div id="toast-notice" class="toast-notice" role="status" aria-live="polite" hidden></div>
+
+    <!-- SCREEN 1: CONNECTION & SIMULATOR LAUNCH -->
+    <section id="screen-connect" class="screen screen-center" data-screen="connect">
+      <div class="connect-card">
+        <div class="brand-row">
+          <div class="brand-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <circle cx="12" cy="12" r="9" />
+              <circle cx="12" cy="12" r="4" />
+              <path d="M12 3v3M12 18v3M3 12h3M18 12h3" />
+            </svg>
+          </div>
+          <div>
+            <p class="eyebrow">DIFFERENTIAL-DRIVE ROBOTICS</p>
+            <h1 class="brand-title">DD VEHICLE · AMR COCKPIT</h1>
+          </div>
+        </div>
+
+        <p class="connect-sub">
+          Offline interactive simulator &amp; live REST cockpit for 2-wheel differential-drive AMR control
+          (360° 2D LiDAR, 0.05 m SLAM grid, 8-zone &lt; 40 cm active interlock).
+        </p>
+
+        <div class="form-grid">
+          <label class="field">
+            <span class="field-label">Robot Host / Loopback</span>
+            <input id="input-host" type="text" value="127.0.0.1" placeholder="127.0.0.1" autocomplete="off" />
+          </label>
+          <div class="field-row-2">
+            <label class="field">
+              <span class="field-label">API Port</span>
+              <input id="input-api-port" type="number" min="1" max="65535" value="8080" />
+            </label>
+            <label class="field">
+              <span class="field-label">Camera Port</span>
+              <input id="input-cam-port" type="number" min="1" max="65535" value="8081" />
+            </label>
+          </div>
+        </div>
+
+        <div id="connect-error" class="alert-inline" role="alert" hidden></div>
+
+        <div class="connect-actions">
+          <button id="btn-instant-cockpit" class="btn btn-primary btn-lg" type="button" data-testid="btn-enter-cockpit">
+            <svg class="btn-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <polygon points="5 3 19 12 5 21 5 3" />
+            </svg>
+            Enter Cockpit
+          </button>
+          <button id="btn-launch-sim" class="btn btn-secondary" type="button" data-testid="btn-demo">
+            Launch Offline Simulator (Preflight)
+          </button>
+          <button id="btn-connect-live" class="btn btn-outline" type="button" data-testid="btn-connect-live">
+            Connect (Live Probe)
+          </button>
+        </div>
+
+        <div class="spec-pills">
+          <span class="pill">R = 0.0366 m</span>
+          <span class="pill">B = 0.096 m</span>
+          <span class="pill">40–135 RPM</span>
+          <span class="pill">&lt; 40 cm Interlock</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- SCREEN 2: 3-STEP PREFLIGHT / HEALTH CHECK -->
+    <section id="screen-preflight" class="screen screen-center" data-screen="preflight" hidden>
+      <div class="connect-card preflight-card">
+        <div class="preflight-header">
+          <div>
+            <p class="eyebrow" id="preflight-mode-tag">OFFLINE SIMULATOR</p>
+            <h2 class="brand-title">Subsystem Preflight</h2>
+          </div>
+          <span id="preflight-counter" class="counter-badge">0/3</span>
+        </div>
+
+        <div class="progress-track" aria-label="Preflight progress">
+          <div id="preflight-progress" class="progress-fill" style="width: 0%"></div>
+        </div>
+
+        <ul class="preflight-list">
+          <li id="check-api" class="check-row" data-status="pending">
+            <span class="check-dot"></span>
+            <div class="check-body">
+              <strong>API Control</strong>
+              <span class="check-detail">/api/telemetry &amp; /api/cmd health</span>
+            </div>
+            <span class="check-badge">WAIT</span>
+          </li>
+          <li id="check-lidar" class="check-row" data-status="pending">
+            <span class="check-dot"></span>
+            <div class="check-body">
+              <strong>LiDAR &amp; Map</strong>
+              <span class="check-detail">360° range array &amp; 0.05 m SLAM grid</span>
+            </div>
+            <span class="check-badge">WAIT</span>
+          </li>
+          <li id="check-camera" class="check-row" data-status="pending">
+            <span class="check-dot"></span>
+            <div class="check-body">
+              <strong>Camera Stream</strong>
+              <span class="check-detail">640×480 tactical optical HUD</span>
+            </div>
+            <span class="check-badge">WAIT</span>
+          </li>
+        </ul>
+
+        <p id="preflight-status" class="preflight-status">Initializing subsystems...</p>
+
+        <div class="preflight-actions">
+          <button id="btn-preflight-enter" class="btn btn-primary" type="button" disabled>Enter Cockpit</button>
+          <button id="btn-preflight-retry" class="btn btn-secondary" type="button">Retry</button>
+          <button id="btn-preflight-back" class="btn btn-outline" type="button">Back</button>
+          <button id="btn-preflight-sim" class="btn btn-outline" type="button" hidden>Switch to Offline Simulator</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- SCREEN 3: LANDSCAPE CONTROL COCKPIT -->
+    <section id="screen-cockpit" class="screen cockpit-screen" data-screen="cockpit" hidden>
+      <!-- Header Bar -->
+      <header class="cockpit-header">
+        <div class="header-left">
+          <div class="header-title-wrap">
+            <span class="header-title">DD VEHICLE</span>
+            <span class="header-subtitle">AMR COCKPIT</span>
+          </div>
+          <span id="badge-mode" class="status-pill pill-info">SIMULATED</span>
+          <span id="badge-arm" class="status-pill pill-muted">DISARMED</span>
+          <span id="badge-latency" class="status-pill pill-mono">12 ms</span>
+          <span id="badge-safety" class="status-pill pill-ok">SAFE</span>
+        </div>
+
+        <div class="header-actions">
+          <button id="btn-arm" class="btn btn-sm btn-primary" type="button">ARM</button>
+          <button id="btn-mission" class="btn btn-sm btn-secondary" type="button">MISSION</button>
+          <button id="btn-settings" class="btn btn-sm btn-secondary" type="button">
+            <svg class="btn-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01A1.65 1.65 0 0 0 10 3.09V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+            SETTINGS
+          </button>
+          <button id="btn-bezel-toggle" class="btn btn-sm btn-outline" type="button" title="Toggle Hardware Frame">FULL</button>
+          <button id="btn-exit" class="btn btn-sm btn-outline" type="button">EXIT</button>
+        </div>
+      </header>
+
+      <!-- 3-Column Landscape Grid -->
+      <div class="cockpit-grid">
+        <!-- LEFT COLUMN: 2D LiDAR/SLAM + 8-DIR D-PAD -->
+        <div class="col-panel">
+          <div class="card radar-card">
+            <div class="card-head">
+              <span class="card-title">2D LiDAR / SLAM RADAR</span>
+              <span class="card-hint">Click map to place/remove obstacle</span>
+            </div>
+            <div class="canvas-wrap radar-wrap">
+              <canvas id="lidar-canvas" data-testid="lidar-canvas" width="380" height="290"></canvas>
+            </div>
+          </div>
+
+          <div class="card dpad-card">
+            <div class="card-head">
+              <span class="card-title">HOLD-TO-DRIVE D-PAD</span>
+              <span class="card-hint">WASD / Arrows / QEZC / Space</span>
+            </div>
+            <div id="dpad-grid" class="dpad-grid">
+              <button id="dpad-FL" class="dpad-btn" type="button" data-dir="FL" data-testid="dpad-FL" aria-label="Forward Left">◤<span>FL</span></button>
+              <button id="dpad-F" class="dpad-btn" type="button" data-dir="F" data-testid="dpad-F" aria-label="Forward">▲<span>F</span></button>
+              <button id="dpad-FR" class="dpad-btn" type="button" data-dir="FR" data-testid="dpad-FR" aria-label="Forward Right">◥<span>FR</span></button>
+
+              <button id="dpad-L" class="dpad-btn" type="button" data-dir="L" data-testid="dpad-L" aria-label="Turn Left">◀<span>L</span></button>
+              <button id="dpad-STOP" class="dpad-btn dpad-stop" type="button" data-dir="STOP" data-testid="dpad-STOP" aria-label="Stop">■<span>STOP</span></button>
+              <button id="dpad-R" class="dpad-btn" type="button" data-dir="R" data-testid="dpad-R" aria-label="Turn Right">▶<span>R</span></button>
+
+              <button id="dpad-BL" class="dpad-btn" type="button" data-dir="BL" data-testid="dpad-BL" aria-label="Backward Left">◣<span>BL</span></button>
+              <button id="dpad-B" class="dpad-btn" type="button" data-dir="B" data-testid="dpad-B" aria-label="Backward">▼<span>B</span></button>
+              <button id="dpad-BR" class="dpad-btn" type="button" data-dir="BR" data-testid="dpad-BR" aria-label="Backward Right">◢<span>BR</span></button>
+            </div>
+            <div id="safety-hint" class="safety-hint" data-testid="safety-banner">
+              DISARMED — Press ARM to enable drive.
+            </div>
+          </div>
+        </div>
+
+        <!-- CENTER COLUMN: MJPEG HUD + TELEMETRY + 8-ZONES + REST STREAM -->
+        <div class="col-panel">
+          <div class="card camera-card">
+            <div class="card-head">
+              <div class="cam-badges">
+                <span class="card-title">OPTICAL HUD</span>
+                <span class="mini-tag">640×480</span>
+                <span class="mini-tag">30 FPS</span>
+                <span id="cam-status-pill" class="mini-tag tag-live">SIM CAM</span>
+              </div>
+              <button id="btn-cam-reload" class="btn-icon" type="button" title="Reload Optical Feed" aria-label="Reload Optical Feed">↻</button>
+            </div>
+            <div class="canvas-wrap camera-wrap">
+              <canvas id="camera-canvas" width="640" height="480"></canvas>
+            </div>
+          </div>
+
+          <div class="card telemetry-card">
+            <div class="telemetry-grid">
+              <div class="tele-tile">
+                <span class="tele-label">L_RPM</span>
+                <strong id="val-lrpm" class="tele-val">0.0</strong>
+              </div>
+              <div class="tele-tile">
+                <span class="tele-label">R_RPM</span>
+                <strong id="val-rrpm" class="tele-val">0.0</strong>
+              </div>
+              <div class="tele-tile">
+                <span class="tele-label">MIN_M</span>
+                <strong id="val-minm" class="tele-val">2.50 m</strong>
+              </div>
+              <div class="tele-tile">
+                <span class="tele-label">STATUS</span>
+                <strong id="val-status" class="tele-val tele-status">SAFE</strong>
+              </div>
+            </div>
+            <div class="pose-strip">
+              <span class="tele-label">POSE (X, Y, TH)</span>
+              <span id="val-pose" class="pose-val">x: 0.000 m · y: 0.000 m · th: 90.0°</span>
+            </div>
+            <div class="zones-strip" aria-label="8-Zone LiDAR Distances">
+              <div class="zone-pill" data-zone="front_left"><span>FL</span><strong id="zone-FL">999</strong></div>
+              <div class="zone-pill" data-zone="front"><span>F</span><strong id="zone-F">999</strong></div>
+              <div class="zone-pill" data-zone="front_right"><span>FR</span><strong id="zone-FR">999</strong></div>
+              <div class="zone-pill" data-zone="left"><span>L</span><strong id="zone-L">999</strong></div>
+              <div class="zone-pill" data-zone="right"><span>R</span><strong id="zone-R">999</strong></div>
+              <div class="zone-pill" data-zone="back_left"><span>BL</span><strong id="zone-BL">999</strong></div>
+              <div class="zone-pill" data-zone="back"><span>B</span><strong id="zone-B">999</strong></div>
+              <div class="zone-pill" data-zone="back_right"><span>BR</span><strong id="zone-BR">999</strong></div>
+            </div>
+          </div>
+
+          <div class="card log-card">
+            <div class="card-head">
+              <span class="card-title">LIVE REST STREAM</span>
+              <button id="btn-clear-log" class="btn-link" type="button">Clear</button>
+            </div>
+            <div id="rest-log" class="rest-log" data-testid="rest-log"></div>
+          </div>
+        </div>
+
+        <!-- RIGHT COLUMN: ARM / SPEED / E-STOP / SCENARIOS & OBSTACLE CONTROLS -->
+        <div class="col-panel">
+          <div id="arm-card" class="card arm-card">
+            <div class="card-head">
+              <span class="card-title">SAFETY &amp; ARM STATE</span>
+              <span id="arm-card-state" class="arm-state-text">DISARMED</span>
+            </div>
+            <div class="arm-btn-row">
+              <button id="btn-card-arm" class="btn btn-primary" type="button" data-testid="btn-arm">ARM VEHICLE</button>
+              <button id="btn-card-disarm" class="btn btn-secondary" type="button">DISARM</button>
+              <button id="btn-card-clear-fault" class="btn btn-warning" type="button" hidden>CLEAR FAULT</button>
+            </div>
+          </div>
+
+          <div class="card speed-card">
+            <div class="card-head">
+              <span class="card-title">TARGET SPEED</span>
+              <span class="card-hint">40–135 RPM (±10)</span>
+            </div>
+            <div class="stepper-row">
+              <button id="btn-rpm-down" class="btn btn-secondary btn-step" type="button" data-testid="btn-speed-down">− 10</button>
+              <div class="rpm-readout">
+                <strong id="rpm-value">40</strong>
+                <span>RPM</span>
+              </div>
+              <button id="btn-rpm-up" class="btn btn-secondary btn-step" type="button" data-testid="btn-speed-up">+ 10</button>
+            </div>
+            <p id="rpm-kinematics-line" class="kin-line">v = 0.153 m/s · ω = 0.958 rad/s</p>
+          </div>
+
+          <button id="btn-estop" class="btn-estop" type="button" data-testid="btn-estop">
+            ■ EMERGENCY STOP
+          </button>
+
+          <div class="card arena-card">
+            <div class="card-head">
+              <span class="card-title">ARENA &amp; OBSTACLE LAB</span>
+              <span class="card-hint">Live &lt; 40 cm interlock test</span>
+            </div>
+
+            <label class="field-inline">
+              <span class="field-label">Scenario Preset</span>
+              <select id="scenario-select" data-testid="scenario-select">
+                <option value="clear">Clear Arena</option>
+                <option value="front_obstacle">Front Obstacle (&lt; 40 cm)</option>
+                <option value="corridor">Corridor</option>
+                <option value="dynamic_moving">Dynamic Moving</option>
+              </select>
+            </label>
+
+            <div class="preset-chips">
+              <button class="chip-btn is-active" type="button" data-scenario="clear">Clear</button>
+              <button class="chip-btn" type="button" data-scenario="front_obstacle">Front &lt;40cm</button>
+              <button class="chip-btn" type="button" data-scenario="corridor">Corridor</button>
+              <button class="chip-btn" type="button" data-scenario="dynamic_moving">Moving</button>
+            </div>
+
+            <div class="slider-group">
+              <div class="slider-head">
+                <span>Obstacle Distance</span>
+                <strong id="obs-dist-label">0.80 m (80 cm)</strong>
+              </div>
+              <input id="slider-obs-dist" type="range" min="0.15" max="2.00" step="0.05" value="0.80" data-testid="obs-distance-slider" />
+            </div>
+
+            <div class="slider-group">
+              <div class="slider-head">
+                <span>Obstacle Angle (CCW)</span>
+                <strong id="obs-angle-label">0° (front)</strong>
+              </div>
+              <input id="slider-obs-angle" type="range" min="0" max="355" step="5" value="0" data-testid="obs-angle-slider" />
+              <div class="angle-chips">
+                <button class="chip-btn chip-xs" type="button" data-angle="0">0° F</button>
+                <button class="chip-btn chip-xs" type="button" data-angle="45">45° FL</button>
+                <button class="chip-btn chip-xs" type="button" data-angle="90">90° L</button>
+                <button class="chip-btn chip-xs" type="button" data-angle="180">180° B</button>
+                <button class="chip-btn chip-xs" type="button" data-angle="270">270° R</button>
+                <button class="chip-btn chip-xs" type="button" data-angle="315">315° FR</button>
+              </div>
+            </div>
+
+            <div class="arena-actions">
+              <button id="btn-place-slider-obs" class="btn btn-sm btn-primary" type="button">Place Obstacle</button>
+              <button id="btn-reset-pose" class="btn btn-sm btn-secondary" type="button">Reset Pose</button>
+              <button id="btn-clear-obstacles" class="btn btn-sm btn-outline" type="button">Clear Custom</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- DRAWER 1: SETTINGS, PID & KINEMATICS REFERENCE -->
+    <aside id="drawer-settings" class="drawer-backdrop" hidden>
+      <div class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+        <div class="drawer-head">
+          <h3 id="settings-title">Settings, PID &amp; Kinematics Reference</h3>
+          <button id="btn-close-settings" class="btn-icon" type="button" aria-label="Close Settings">✕</button>
+        </div>
+
+        <div class="drawer-body">
+          <div class="drawer-section">
+            <h4>Network &amp; Latency Simulation</h4>
+            <div class="field-row-3">
+              <label class="field">
+                <span class="field-label">Host</span>
+                <input id="settings-host" type="text" value="127.0.0.1" />
+              </label>
+              <label class="field">
+                <span class="field-label">API Port</span>
+                <input id="settings-api-port" type="number" min="1" max="65535" value="8080" />
+              </label>
+              <label class="field">
+                <span class="field-label">Cam Port</span>
+                <input id="settings-cam-port" type="number" min="1" max="65535" value="8081" />
+              </label>
+            </div>
+            <button id="btn-save-network" class="btn btn-sm btn-secondary" type="button">Save Host &amp; Ports</button>
+
+            <div class="slider-group">
+              <div class="slider-head">
+                <span>Simulated Link Latency (&gt; 1500 ms trips watchdog)</span>
+                <strong id="sim-latency-label">12 ms</strong>
+              </div>
+              <input id="slider-sim-latency" type="range" min="0" max="2000" step="20" value="12" />
+            </div>
+          </div>
+
+          <div class="drawer-section">
+            <h4>PID Tuning &amp; Map Actions</h4>
+            <div class="field-row-3">
+              <label class="field">
+                <span class="field-label">Kp</span>
+                <input id="pid-kp" type="number" step="0.01" value="0.5" />
+              </label>
+              <label class="field">
+                <span class="field-label">Ki</span>
+                <input id="pid-ki" type="number" step="0.01" value="1.5" />
+              </label>
+              <label class="field">
+                <span class="field-label">Kd</span>
+                <input id="pid-kd" type="number" step="0.005" value="0.01" />
+              </label>
+            </div>
+            <div class="drawer-btn-row">
+              <button id="btn-apply-pid" class="btn btn-sm btn-primary" type="button">Apply PID</button>
+              <button id="btn-reset-map" class="btn btn-sm btn-secondary" type="button">Reset SLAM Map</button>
+              <button id="btn-inject-fault" class="btn btn-sm btn-warning" type="button">Inject Fault</button>
+            </div>
+          </div>
+
+          <div class="drawer-section kin-ref-card">
+            <h4>Differential-Drive Kinematics Reference</h4>
+            <ul class="kin-ref-list">
+              <li><code>R = 0.0366 m</code> · <code>B = 0.096 m</code> · <code>K = 2πR/60 = 0.003833 m/s/RPM</code></li>
+              <li><code>v = RPM × K</code> · <code>ω = min(1.80, 0.60 × v / B)</code> · <code>45° scale = 0.707</code></li>
+              <li><code>RPM_L = (v − ω·B) / K</code> · <code>RPM_R = (v + ω·B) / K</code></li>
+              <li>Active Safety: 8-zone LiDAR &lt; 40 cm blocks &amp; auto-halts with <code>V 0.000 0.000</code>; Watchdog &gt; 1500 ms locks drive.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- DRAWER 2: MISSION / TELEMETRY INSPECTOR -->
+    <aside id="drawer-mission" class="drawer-backdrop" hidden>
+      <div class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="mission-title">
+        <div class="drawer-head">
+          <h3 id="mission-title">Mission &amp; Telemetry Inspector</h3>
+          <button id="btn-close-mission" class="btn-icon" type="button" aria-label="Close Mission Inspector">✕</button>
+        </div>
+
+        <div class="drawer-body">
+          <div class="mission-stats">
+            <div class="tele-tile">
+              <span class="tele-label">DISTANCE TRAVELED</span>
+              <strong id="mission-distance" class="tele-val">0.000 m</strong>
+            </div>
+            <div class="tele-tile">
+              <span class="tele-label">SLAM EXPLORED</span>
+              <strong id="mission-explored" class="tele-val">0.0 %</strong>
+            </div>
+          </div>
+
+          <div class="drawer-section">
+            <h4>/api/map_full Metadata</h4>
+            <p id="mission-map-meta" class="mono-block">—</p>
+          </div>
+
+          <div class="drawer-section">
+            <h4>Live /api/telemetry Snapshot</h4>
+            <pre id="mission-telemetry-json" class="json-block">{}</pre>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <script type="module" src="./src/app/main.js"></script>
+</body>
+</html>

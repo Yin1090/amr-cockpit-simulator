@@ -1,0 +1,14 @@
+{
+  "name": "amr-cockpit-simulator",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Offline-capable interactive differential-drive AMR cockpit simulator with 2D LiDAR/SLAM and 8-zone <40 cm safety interlock.",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "serve": "node tests/serve.mjs"
+  }
+}
