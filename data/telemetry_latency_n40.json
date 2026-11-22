@@ -1,0 +1,21 @@
+{
+  "description": "n=40 HTTP proxy telemetry round-trip latency benchmark (Topic 2)",
+  "endpoint": "/api/telemetry",
+  "via_proxy": true,
+  "sample_count": 40,
+  "target_p95_ms": 150.0,
+  "expected_stats": {
+    "min_ms": 26.4,
+    "median_ms": 36.0,
+    "mean_ms": 40.9,
+    "p95_ms": 60.3,
+    "max_ms": 163.9
+  },
+  "samples_ms": [
+    26.4, 42.9, 27.1, 60.3, 27.8, 60.3, 28.4, 57.5,
+    29.0, 44.3, 29.5, 49.6, 30.1, 47.4, 30.6, 45.7,
+    31.1, 163.9, 31.6, 43.1, 32.0, 42.1, 32.5, 41.2,
+    32.9, 40.4, 33.4, 39.7, 33.9, 39.0, 34.4, 38.4,
+    34.9, 37.8, 35.3, 37.2, 35.7, 36.6, 36.0, 36.0
+  ]
+}

@@ -1,0 +1,75 @@
+{
+  "description": "Calibrated closed-loop motor tracking & active < 0.40 m interlock scenarios (40-135 RPM)",
+  "max_tracking_error_pct": 3.0,
+  "scenarios": [
+    {
+      "id": "unarmed_40rpm",
+      "armed": false,
+      "setpoint_rpm": 40,
+      "direction": "F",
+      "measured_l_rpm": 0.0,
+      "measured_r_rpm": 0.0,
+      "lidar_min_m": 0.33,
+      "report_safety": "WARNING",
+      "expected_drive_allowed": false
+    },
+    {
+      "id": "forward_40rpm",
+      "armed": true,
+      "setpoint_rpm": 40,
+      "direction": "F",
+      "measured_l_rpm": 46.09,
+      "measured_r_rpm": 47.38,
+      "lidar_min_m": 0.39,
+      "report_safety": "SAFE",
+      "expected_v_mps": 0.1533,
+      "expected_drive_allowed_when_front_clear": true
+    },
+    {
+      "id": "turn_80rpm",
+      "armed": true,
+      "setpoint_rpm": 80,
+      "direction": "L",
+      "measured_l_rpm": 74.26,
+      "measured_r_rpm": 43.53,
+      "lidar_min_m": 0.29,
+      "report_safety": "WARNING",
+      "expected_drive_allowed_when_left_clear": true
+    },
+    {
+      "id": "reverse_40rpm",
+      "armed": true,
+      "setpoint_rpm": 40,
+      "direction": "B",
+      "measured_l_rpm": -38.41,
+      "measured_r_rpm": -38.41,
+      "lidar_min_m": 0.95,
+      "report_safety": "SAFE",
+      "expected_v_mps": -0.1533,
+      "expected_drive_allowed": true
+    },
+    {
+      "id": "max_135rpm",
+      "armed": true,
+      "setpoint_rpm": 135,
+      "direction": "F",
+      "measured_l_rpm": 133.16,
+      "measured_r_rpm": 138.28,
+      "lidar_min_m": 0.32,
+      "report_safety": "SAFE",
+      "expected_v_mps": 0.5174,
+      "max_error_pct": 3.0
+    },
+    {
+      "id": "obstacle_lock_135rpm",
+      "armed": true,
+      "setpoint_rpm": 135,
+      "direction": "F",
+      "measured_l_rpm": 0.0,
+      "measured_r_rpm": 0.0,
+      "lidar_min_m": 0.17,
+      "report_safety": "WARNING",
+      "expected_drive_allowed": false
+    }
+  ]
+}

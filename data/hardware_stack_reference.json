@@ -1,0 +1,79 @@
+{
+  "platform": "Differential-Drive 2-Wheel AMR Cockpit Reference",
+  "kinematics": {
+    "wheel_radius_m": 0.0366,
+    "physical_track_width_m": 0.1875,
+    "physical_half_wheelbase_m": 0.09375,
+    "simulator_half_wheelbase_m": 0.096,
+    "mps_per_rpm": 0.00383274,
+    "rpm_min": 40,
+    "rpm_max": 135,
+    "rpm_step": 10,
+    "angular_gain": 0.60,
+    "max_omega_rad_s": 1.80
+  },
+  "onboard_compute": {
+    "sbc": "Raspberry Pi 4",
+    "ros_distro": "ROS 2 Jazzy",
+    "nodes": [
+      "rplidar_ros2",
+      "slam_toolbox",
+      "tf2 static_transform_publisher"
+    ],
+    "ports": {
+      "rest_api": 8080,
+      "mjpeg_camera": 8081,
+      "mjpeg_resolution": "640x480",
+      "auth_proxy": 8090
+    }
+  },
+  "mcu_and_sensors": {
+    "mcu": "ESP32",
+    "usb_serial": "CH340",
+    "baud_rate": 115200,
+    "motor_driver": {
+      "model": "MKE-M18",
+      "bus": "I2C",
+      "sda_gpio": 21,
+      "scl_gpio": 22,
+      "address": "0x42"
+    },
+    "encoders": {
+      "ppr": 937,
+      "left_gpio": [18, 19],
+      "right_gpio": [25, 26]
+    },
+    "lidar": {
+      "model": "RPLiDAR C1",
+      "scan_rate_hz": 10.0,
+      "points_per_rev": [666, 682]
+    }
+  },
+  "safety_and_timers": {
+    "obstacle_threshold_m": 0.40,
+    "obstacle_threshold_cm": 40.0,
+    "lidar_max_age_s": 0.5,
+    "watchdog_timeout_ms": 1500,
+    "polling_timers_ms": {
+      "control": 150,
+      "health": 250,
+      "telemetry": 400,
+      "map": 500,
+      "map_full": 1000
+    },
+    "zone_wire_mapping": {
+      "zF": "front",
+      "zB": "back",
+      "zL": "left",
+      "zR": "right",
+      "zFL": "front_left",
+      "zFR": "front_right",
+      "zBL": "back_left",
+      "zBR": "back_right"
+    },
+    "fsm_contract": {
+      "duplicate_arm": "HTTP 422 FAILED, PREFLIGHT_NOT_READY",
+      "stop": "HTTP 200 SENT, STOP_CONFIRMED (armed=false, latched=true)"
+    }
+  }
+}
