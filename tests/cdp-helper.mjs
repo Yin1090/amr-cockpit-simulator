@@ -26,20 +26,21 @@ export function resolveBrowserBinary() {
 
 function launchBrowserForWs(browserPath, userDataDir) {
   return new Promise((resolve, reject) => {
-    const proc = spawn(
-      browserPath,
-      [
-        '--headless=new',
-        '--disable-gpu',
-        '--no-first-run',
-        '--no-default-browser-check',
-        '--disable-background-networking',
-        '--remote-debugging-port=0',
-        `--user-data-dir=${userDataDir}`,
-        'about:blank',
-      ],
-      { stdio: ['ignore', 'pipe', 'pipe'] }
-    );
+    const args = [
+      '--headless=new',
+      '--disable-gpu',
+      '--no-first-run',
+      '--no-default-browser-check',
+      '--disable-background-networking',
+      '--remote-debugging-port=0',
+      `--user-data-dir=${userDataDir}`,
+    ];
+    if (process.platform === 'linux' && (process.env.CI === 'true' || process.env.AMR_BROWSER_NO_SANDBOX === '1')) {
+      args.push('--no-sandbox', '--disable-dev-shm-usage');
+    }
+    args.push('about:blank');
+
+    const proc = spawn(browserPath, args, { stdio: ['ignore', 'pipe', 'pipe'] });
 
     let buffer = '';
     const timer = setTimeout(() => {
