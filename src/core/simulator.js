@@ -276,11 +276,11 @@ export function createAmrSimulator(options = {}) {
       return res;
     }
 
-    if (trimmed.startsWith('V ')) {
+    if (trimmed === 'V' || trimmed.startsWith('V ')) {
       const parts = trimmed.split(/\s+/);
-      const reqV = Number(parts[1]);
-      const reqW = Number(parts[2]);
-      if (!Number.isFinite(reqV) || !Number.isFinite(reqW)) {
+      const reqV = parts.length === 3 ? Number(parts[1]) : Number.NaN;
+      const reqW = parts.length === 3 ? Number(parts[2]) : Number.NaN;
+      if (parts.length !== 3 || !Number.isFinite(reqV) || !Number.isFinite(reqW)) {
         const res = { status: 'REJECTED', reason: 'INVALID_VELOCITY' };
         logRest('GET', `/api/cmd?val=${encodeURIComponent(trimmed)}&epoch=${reqEpoch}&seq=${reqSeq}`, 200, res);
         return res;
@@ -292,6 +292,11 @@ export function createAmrSimulator(options = {}) {
         wheelRpms = { l_rpm: 0, r_rpm: 0 };
         const res = { status: 'SENT' };
         logRest('GET', `/api/cmd?val=V%200.000%200.000&epoch=${epoch}&seq=${seq}`, 200, res);
+        return res;
+      }
+      if (Number.isFinite(reqEpoch) && reqEpoch < epoch) {
+        const res = { status: 'REJECTED', reason: 'STALE_EPOCH' };
+        logRest('GET', `/api/cmd?val=${encodeURIComponent(trimmed)}&epoch=${reqEpoch}&seq=${reqSeq}`, 200, res);
         return res;
       }
       if (fault || !armed || telemetryStale || !isLidarHealthy(getLidarObj())) {
@@ -548,7 +553,14 @@ export function createAmrSimulator(options = {}) {
       const kp = Number(url.searchParams.get('kp'));
       const ki = Number(url.searchParams.get('ki'));
       const kd = Number(url.searchParams.get('kd'));
-      if (!Number.isFinite(kp) || !Number.isFinite(ki) || !Number.isFinite(kd)) {
+      if (
+        !Number.isFinite(kp) ||
+        !Number.isFinite(ki) ||
+        !Number.isFinite(kd) ||
+        kp < 0 ||
+        ki < 0 ||
+        kd < 0
+      ) {
         const err = { ok: false, error: 'INVALID_PID' };
         logRest('GET', url.pathname + url.search, 400, err);
         return { statusCode: 400, body: err };

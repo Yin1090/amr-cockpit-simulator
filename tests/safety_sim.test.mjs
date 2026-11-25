@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createAmrSimulator } from '../src/core/simulator.js';
-import { DIRECTION_TO_ZONE } from '../src/core/safety.js';
+import { DIRECTION_TO_ZONE, computeSafetyStatus } from '../src/core/safety.js';
 import { LIDAR_MIN_RANGE_M, computeZonesFromRanges } from '../src/core/lidar.js';
 import { ROBOT_RADIUS_M } from '../src/core/kinematics.js';
 
@@ -316,4 +316,27 @@ test('ARM/STOP FSM rejects duplicate ARM (422) and latches STOP until next ARM',
   assert.equal(arm2.body.armed, true);
   assert.equal(arm2.body.latched, false);
   assert.equal(sim.getTelemetry().control.latched, false);
+});
+
+test('computeSafetyStatus covers all 8 zones < 40 cm and simulator validates PID & V tokens', () => {
+  assert.equal(
+    computeSafetyStatus(
+      { front: 200, back: 38.0, left: 200, right: 200, front_left: 200, front_right: 200, back_left: 200, back_right: 200 },
+      0.38,
+    ),
+    'DANGER_STOP',
+  );
+
+  const sim = createAmrSimulator({ scenarioId: 'clear' });
+  const badPid = sim.request('/api/pid?kp=-1&ki=0&kd=0');
+  assert.equal(badPid.statusCode, 400);
+  assert.equal(badPid.body.error, 'INVALID_PID');
+
+  const bareV = sim.request('/api/cmd?val=V');
+  assert.equal(bareV.body.status, 'REJECTED');
+  assert.equal(bareV.body.reason, 'INVALID_VELOCITY');
+
+  const extraV = sim.request('/api/cmd?val=V%200.1%200.2%20extra');
+  assert.equal(extraV.body.status, 'REJECTED');
+  assert.equal(extraV.body.reason, 'INVALID_VELOCITY');
 });

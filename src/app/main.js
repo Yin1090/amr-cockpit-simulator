@@ -212,6 +212,7 @@ function validateNetworkInputs(hostVal, apiPortVal, camPortVal) {
 }
 
 function switchScreen(name) {
+  const wasCockpit = appState.screen === 'cockpit';
   appState.screen = name;
   appShell.dataset.activeScreen = name;
   screenConnect.hidden = name !== 'connect';
@@ -223,7 +224,9 @@ function switchScreen(name) {
     renderAll();
   } else {
     stopCockpitLoops();
-    stopDrive('STOP');
+    if (wasCockpit && (sim.getState().armed || sim.getState().cmdV !== 0)) {
+      stopDrive('STOP');
+    }
   }
 }
 
@@ -294,6 +297,7 @@ function setCheckRow(rowEl, status, badgeText) {
 }
 
 function runPreflight(mode, degraded404 = false) {
+  appState.lastDegraded404 = Boolean(degraded404);
   clearInterval(appState.preflightTimerId);
   preflightModeTag.textContent = mode === 'live' ? 'LIVE HARDWARE PROBE' : 'OFFLINE SIMULATOR';
   btnPreflightSim.hidden = mode !== 'live';
@@ -365,7 +369,7 @@ async function probeLivePreflight(degraded404) {
 }
 
 btnPreflightEnter.addEventListener('click', () => switchScreen('cockpit'));
-btnPreflightRetry.addEventListener('click', () => runPreflight(appState.mode));
+btnPreflightRetry.addEventListener('click', () => runPreflight(appState.mode, appState.lastDegraded404));
 btnPreflightBack.addEventListener('click', () => {
   clearInterval(appState.preflightTimerId);
   switchScreen('connect');
@@ -478,18 +482,28 @@ window.addEventListener('pointerup', () => {
 });
 
 window.addEventListener('blur', () => {
+  const wasDriving =
+    appState.activePointerDir !== null ||
+    appState.keyboardDir !== null ||
+    sim.getState().activeDirection !== null;
   appState.pressedKeys.clear();
   appState.keyboardDir = null;
-  if (appState.screen === 'cockpit') {
+  if (appState.screen === 'cockpit' && wasDriving) {
     stopDrive('RELEASE');
   }
 });
 
 document.addEventListener('visibilitychange', () => {
   if (document.hidden && appState.screen === 'cockpit') {
+    const wasDriving =
+      appState.activePointerDir !== null ||
+      appState.keyboardDir !== null ||
+      sim.getState().activeDirection !== null;
     appState.pressedKeys.clear();
     appState.keyboardDir = null;
-    stopDrive('RELEASE');
+    if (wasDriving) {
+      stopDrive('RELEASE');
+    }
   }
 });
 
@@ -626,7 +640,6 @@ btnBezelToggle.addEventListener('click', () => {
 });
 
 btnExit.addEventListener('click', () => {
-  stopDrive('STOP');
   drawerSettings.hidden = true;
   drawerMission.hidden = true;
   switchScreen('connect');
@@ -761,9 +774,16 @@ sliderSimLatency.addEventListener('input', () => {
 });
 
 btnApplyPid.addEventListener('click', () => {
-  const kp = Number(pidKp.value);
-  const ki = Number(pidKi.value);
-  const kd = Number(pidKd.value);
+  const rawKp = pidKp.value.trim();
+  const rawKi = pidKi.value.trim();
+  const rawKd = pidKd.value.trim();
+  if (!rawKp || !rawKi || !rawKd) {
+    showToast('Invalid PID parameter values.');
+    return;
+  }
+  const kp = Number(rawKp);
+  const ki = Number(rawKi);
+  const kd = Number(rawKd);
   const res = sim.request(`/api/pid?kp=${encodeURIComponent(kp)}&ki=${encodeURIComponent(ki)}&kd=${encodeURIComponent(kd)}`);
   if (res.statusCode === 200) {
     showToast(`PID applied: Kp=${kp}, Ki=${ki}, Kd=${kd}`);
@@ -938,12 +958,20 @@ function renderAll() {
   rpmKinematicsLine.textContent = `v = ${v.toFixed(3)} m/s · ω = ${w.toFixed(3)} rad/s`;
 
   // REST log (recent 50 entries, newest on top)
+  const escapeHtml = (v) =>
+    String(v)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
   const logs = sim.getCommandLog().slice(-50).reverse();
   restLog.innerHTML = logs
     .map((entry) => {
       const rejected = entry.response?.status === 'REJECTED' || entry.statusCode >= 400;
-      const statusText = entry.response?.status ?? entry.statusCode;
-      return `<div class="log-row ${rejected ? 'is-rejected' : ''}"><span>${statusText}</span><span class="log-url">${entry.url}</span><span class="log-lat">${entry.latencyMs}ms</span></div>`;
+      const statusText = escapeHtml(entry.response?.status ?? entry.statusCode);
+      const urlText = escapeHtml(entry.url);
+      const latText = escapeHtml(entry.latencyMs);
+      return `<div class="log-row ${rejected ? 'is-rejected' : ''}"><span>${statusText}</span><span class="log-url">${urlText}</span><span class="log-lat">${latText}ms</span></div>`;
     })
     .join('');
 

@@ -112,11 +112,20 @@ export function getBlockedZones(zones, thresholdCm = OBSTACLE_THRESHOLD_CM) {
  * @returns {'SAFE'|'WARNING'|'DANGER_STOP'}
  */
 export function computeSafetyStatus(zones, minM) {
+  const blocked = getBlockedZones(zones, OBSTACLE_THRESHOLD_CM);
   const frontCm = zones?.front ?? ZONE_CLEAR_CM;
-  if (frontCm < 25.0 || (Number.isFinite(minM) && minM <= 0.15)) {
+  const minZoneCm = Object.values(zones || {}).reduce(
+    (acc, v) => (Number.isFinite(v) ? Math.min(acc, v) : acc),
+    ZONE_CLEAR_CM,
+  );
+  if (
+    blocked.length > 0 ||
+    frontCm < 25.0 ||
+    (Number.isFinite(minM) && minM < OBSTACLE_THRESHOLD_M)
+  ) {
     return 'DANGER_STOP';
   }
-  if (frontCm < 50.0 || (Number.isFinite(minM) && minM <= 0.35)) {
+  if (frontCm < 50.0 || minZoneCm < 50.0 || (Number.isFinite(minM) && minM <= 0.45)) {
     return 'WARNING';
   }
   return 'SAFE';

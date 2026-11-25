@@ -38,10 +38,10 @@
 
 | Fixture | Contents | Calibrated Benchmarks |
 |---|---|---|
-| `data/hardware_stack_reference.json` | Pi 4 / ROS 2 / ESP32 / timer / FSM spec | `R=0.0366 m`, `L=0.1875 m` (`B_sim=0.096 m`), `150/250/400/500/1000 ms` |
-| `data/telemetry_latency_n40.json` | `n = 40` proxy telemetry latency array | Min `26.4`, Median `36.0`, Mean `40.9`, **p95 `60.3 ms` (`< 150 ms`)**, Max `163.9 ms` |
-| `data/motor_tracking_benchmarks.json` | 6 motor tracking & interlock scenarios | Unarmed `0/0`; `40` Fwd `46.09/47.38`; `80` Turn `74.26/43.53`; `40` Rev `-38.41/-38.41`; `135` Max `133.16/138.28` (`< 3%`); Lock `0.17 m -> 0/0` |
-| `data/slam_grid_snapshot.json` | `101×99` SLAM grid + `674`-pt LiDAR scan | `0.05 m/cell` (`9999` cells), `age_s=0.018`, nearest `0.62 m @ 268°`, pose `(0.114, -2.120, 124.6°)`, `dist=7.88 m`, `cov=3.7%` |
+| `data/hardware_stack_reference.json` | Pi 4 / ROS 2 / ESP32 / FSM spec | `R=0.0366 m`, `L=0.1875 m` (`B_sim=0.096 m`)<br>Timers: `150 / 250 / 400 / 500 / 1000 ms` |
+| `data/telemetry_latency_n40.json` | `n = 40` proxy latency array | Min `26.4`, Median `36.0`, Mean `40.9`<br>**p95 `60.3 ms` (`< 150 ms`)**, Max `163.9 ms` |
+| `data/motor_tracking_benchmarks.json` | 6 motor & interlock scenarios | Unarmed `0/0`; `40` Fwd `46.09/47.38`; `80` Turn `74.26/43.53`<br>`40` Rev `-38.41/-38.41`; `135` Max `133.16/138.28` (`< 3%`); Lock `0.17 m -> 0/0` |
+| `data/slam_grid_snapshot.json` | `101×99` SLAM + `674`-pt LiDAR | `0.05 m/cell` (`9999` cells), `age_s=0.018`, nearest `0.62 m @ 268°`<br>Pose `(0.114, -2.120, 124.6°)`, `dist=7.88 m`, `cov=3.7%` |
 
 ### Installation, Usage & Automated Tests
 
